@@ -1,15 +1,569 @@
 <!doctype html>
 <html lang="pl">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>pdf-test — dashboardy do prognozowania</title>
-  </head>
-  <body>
-    <main>
-      <h1>Dashboardy do prognozowania</h1>
-      <p>Strona projektu pdf-test. Tutaj będą dostępne dashboardy do prognozowania.</p>
-      <p>Zmiany w repozytorium są automatycznie publikowane przez GitHub Pages.</p>
-    </main>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Times — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121317;
+    --panel: #1b1d24;
+    --panel-2: #23262f;
+    --border: #2f3340;
+    --text: #eef0f5;
+    --text-dim: #9aa0ad;
+    --accent: #7c8cff;
+    --size-s: #4fc3f7;
+    --size-m: #ffb74d;
+    --size-l: #f06292;
+    --p50: #66bb6a;
+    --p85: #ffd54f;
+    --p95: #ef5350;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Poppins', 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 24px 32px 8px;
+  }
+  header h1 {
+    margin: 0 0 4px;
+    font-weight: 600;
+    font-size: 1.6rem;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  main {
+    padding: 16px 32px 48px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .panel + .panel { margin-top: 20px; }
+  .panel h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar { display: flex; flex-direction: column; }
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    cursor: pointer;
+    font-size: 0.85rem;
+    user-select: none;
+    transition: all .15s ease;
+  }
+  .chip input { accent-color: var(--accent); cursor: pointer; }
+  .chip.active-s { border-color: var(--size-s); box-shadow: 0 0 0 1px var(--size-s) inset; }
+  .chip.active-m { border-color: var(--size-m); box-shadow: 0 0 0 1px var(--size-m) inset; }
+  .chip.active-l { border-color: var(--size-l); box-shadow: 0 0 0 1px var(--size-l) inset; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+  .dot-s { background: var(--size-s); }
+  .dot-m { background: var(--size-m); }
+  .dot-l { background: var(--size-l); }
+  .dot-p50 { background: var(--p50); }
+  .dot-p85 { background: var(--p85); }
+  .dot-p95 { background: var(--p95); }
+  .range-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .range-btn {
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    transition: all .15s ease;
+  }
+  .range-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0e12;
+    font-weight: 600;
+  }
+  .perc-group { display: flex; flex-direction: column; gap: 10px; }
+  label.field {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  input[type=date], input[type=number], select {
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+  .form-row { margin-bottom: 12px; }
+  button.primary {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #0d0e12;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: filter .15s ease;
+  }
+  button.primary:hover { filter: brightness(1.1); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .stat-card .label { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 4px; }
+  .stat-card .value { font-size: 1.1rem; font-weight: 600; }
+  #chart-wrap { position: relative; height: 480px; }
+  #chart-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .axis-label { fill: #9aa0ad; font-size: 11px; font-family: 'Poppins', sans-serif; }
+  .grid-line { stroke: #2f3340; stroke-width: 1; }
+  .point { cursor: pointer; transition: r .1s ease; }
+  .point:hover { stroke: #fff; stroke-width: 1.5; }
+  .perc-line { stroke-dasharray: 6 4; stroke-width: 2; fill: none; }
+  .perc-label { font-size: 11px; font-weight: 600; font-family: 'Poppins', sans-serif; }
+  #tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text);
+    box-shadow: 0 4px 16px rgba(0,0,0,.35);
+    opacity: 0;
+    transition: opacity .1s ease;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  .legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  .legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+  .msg { font-size: 0.78rem; color: var(--text-dim); margin-top: 8px; min-height: 16px; }
+  .legend-note { font-size: 0.75rem; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lead Times — czasy realizacji</h1>
+  <p>Scatterplot czasów realizacji (dni) wg daty ukończenia i deklarowanego rozmiaru. Dane z „Lead Times.xlsx”.</p>
+</header>
+<main>
+  <aside class="sidebar">
+    <div class="panel">
+      <h2>Rozmiary</h2>
+      <div class="chip-group" id="size-filters"></div>
+    </div>
+    <div class="panel">
+      <h2>Zakres czasu</h2>
+      <div class="range-group" id="range-filters">
+        <button class="range-btn active" data-range="all">Cały okres</button>
+        <button class="range-btn" data-range="9">9 mies.</button>
+        <button class="range-btn" data-range="6">6 mies.</button>
+        <button class="range-btn" data-range="3">3 mies.</button>
+        <button class="range-btn" data-range="1">1 mies.</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Percentyle</h2>
+      <div class="perc-group" id="percentile-filters">
+        <label class="chip"><input type="checkbox" data-p="50"><span class="dot dot-p50"></span>P50 (mediana)</label>
+        <label class="chip"><input type="checkbox" data-p="85"><span class="dot dot-p85"></span>P85</label>
+        <label class="chip"><input type="checkbox" data-p="95"><span class="dot dot-p95"></span>P95</label>
+      </div>
+      <p class="legend-note">Percentyle liczone są z aktualnie wybranych rozmiarów i zakresu czasu.</p>
+    </div>
+    <div class="panel">
+      <h2>Dodaj punkt danych</h2>
+      <form id="add-form">
+        <div class="form-row">
+          <label class="field" for="f-date">Data ukończenia</label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div class="form-row">
+          <label class="field" for="f-size">Rozmiar</label>
+          <select id="f-size" required>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="field" for="f-lt">Czas realizacji (dni)</label>
+          <input type="number" id="f-lt" min="0" step="1" required>
+        </div>
+        <button type="submit" class="primary">Dodaj punkt</button>
+        <div class="msg" id="form-msg"></div>
+      </form>
+    </div>
+  </aside>
+  <section>
+    <div class="panel">
+      <div class="stats" id="stats"></div>
+      <div class="legend-row" id="legend-row"></div>
+      <div id="chart-wrap">
+        <svg id="chart"></svg>
+        <div id="tooltip"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // Dane wyeksportowane z pliku "Lead Times.xlsx"
+  const BASE_DATA = [
+    {"date":"2024-07-15","size":"S","leadTime":49},
+    {"date":"2024-08-22","size":"S","leadTime":48},
+    {"date":"2024-09-10","size":"S","leadTime":87},
+    {"date":"2024-09-25","size":"M","leadTime":57},
+    {"date":"2024-10-05","size":"M","leadTime":148},
+    {"date":"2024-10-14","size":"S","leadTime":53},
+    {"date":"2024-10-28","size":"S","leadTime":45},
+    {"date":"2024-11-18","size":"M","leadTime":145},
+    {"date":"2024-12-04","size":"L","leadTime":105},
+    {"date":"2025-01-08","size":"S","leadTime":5},
+    {"date":"2025-01-20","size":"L","leadTime":163},
+    {"date":"2025-02-14","size":"S","leadTime":43},
+    {"date":"2025-02-26","size":"M","leadTime":415},
+    {"date":"2025-03-15","size":"L","leadTime":123},
+    {"date":"2025-04-10","size":"M","leadTime":103},
+    {"date":"2025-05-05","size":"L","leadTime":104},
+    {"date":"2025-06-12","size":"L","leadTime":302},
+    {"date":"2025-06-25","size":"L","leadTime":158},
+    {"date":"2025-07-02","size":"L","leadTime":98},
+    {"date":"2025-07-11","size":"S","leadTime":52},
+    {"date":"2025-07-18","size":"M","leadTime":95},
+    {"date":"2025-07-29","size":"S","leadTime":70},
+    {"date":"2025-08-03","size":"M","leadTime":95},
+    {"date":"2025-08-14","size":"M","leadTime":101},
+    {"date":"2025-08-21","size":"M","leadTime":57},
+    {"date":"2025-08-29","size":"M","leadTime":57},
+    {"date":"2025-09-08","size":"S","leadTime":53},
+    {"date":"2025-09-22","size":"L","leadTime":137},
+    {"date":"2025-10-04","size":"S","leadTime":73},
+    {"date":"2025-10-12","size":"M","leadTime":60},
+    {"date":"2025-10-19","size":"S","leadTime":126},
+    {"date":"2025-10-27","size":"M","leadTime":57},
+    {"date":"2025-11-05","size":"L","leadTime":124},
+    {"date":"2025-11-15","size":"M","leadTime":75},
+    {"date":"2025-11-25","size":"M","leadTime":89},
+    {"date":"2025-12-10","size":"S","leadTime":44}
+  ];
+
+  const SIZE_COLORS = { S: "#4fc3f7", M: "#ffb74d", L: "#f06292" };
+  const SIZE_LABELS = { S: "S (small)", M: "M (medium)", L: "L (large)" };
+  const PERC_COLORS = { 50: "#66bb6a", 85: "#ffd54f", 95: "#ef5350" };
+  const MONTHS_PL = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+
+  let data = BASE_DATA.slice();
+  let state = {
+    sizes: { S: true, M: true, L: true },
+    range: "all",
+    percentiles: { 50: false, 85: false, 95: false }
+  };
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("chart");
+  const tooltip = document.getElementById("tooltip");
+  const chartWrap = document.getElementById("chart-wrap");
+
+  // --- UI: budowa filtrów rozmiaru ---
+  const sizeFiltersEl = document.getElementById("size-filters");
+  Object.keys(SIZE_COLORS).forEach((s) => {
+    const label = document.createElement("label");
+    label.className = "chip active-" + s.toLowerCase();
+    label.innerHTML =
+      '<input type="checkbox" checked data-size="' + s + '">' +
+      '<span class="dot dot-' + s.toLowerCase() + '"></span>' + SIZE_LABELS[s];
+    sizeFiltersEl.appendChild(label);
+  });
+  sizeFiltersEl.addEventListener("change", (e) => {
+    const cb = e.target.closest("input[data-size]");
+    if (!cb) return;
+    state.sizes[cb.dataset.size] = cb.checked;
+    cb.closest("label").classList.toggle("active-" + cb.dataset.size.toLowerCase(), cb.checked);
+    render();
+  });
+
+  // --- UI: zakres czasu ---
+  const rangeFiltersEl = document.getElementById("range-filters");
+  rangeFiltersEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".range-btn");
+    if (!btn) return;
+    state.range = btn.dataset.range;
+    [...rangeFiltersEl.children].forEach((b) => b.classList.toggle("active", b === btn));
+    render();
+  });
+
+  // --- UI: percentyle ---
+  const percFiltersEl = document.getElementById("percentile-filters");
+  percFiltersEl.addEventListener("change", (e) => {
+    const cb = e.target.closest("input[data-p]");
+    if (!cb) return;
+    state.percentiles[cb.dataset.p] = cb.checked;
+    render();
+  });
+
+  // --- Formularz dodawania punktu ---
+  const addForm = document.getElementById("add-form");
+  const formMsg = document.getElementById("form-msg");
+  addForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const dateVal = document.getElementById("f-date").value;
+    const sizeVal = document.getElementById("f-size").value;
+    const ltVal = Number(document.getElementById("f-lt").value);
+    if (!dateVal || !sizeVal || !Number.isFinite(ltVal) || ltVal < 0) {
+      formMsg.textContent = "Uzupełnij poprawnie wszystkie pola.";
+      return;
+    }
+    data.push({ date: dateVal, size: sizeVal, leadTime: ltVal });
+    formMsg.textContent = "Dodano punkt: " + dateVal + " / " + sizeVal + " / " + ltVal + " dni.";
+    addForm.reset();
+    render();
+  });
+
+  // --- Logika filtrowania ---
+  function getReferenceMaxDate() {
+    return data.reduce((max, d) => (d.date > max ? d.date : max), data[0].date);
+  }
+
+  function getRangeFiltered() {
+    if (state.range === "all") return data.slice();
+    const months = Number(state.range);
+    const refMax = new Date(getReferenceMaxDate());
+    const cutoff = new Date(refMax);
+    cutoff.setMonth(cutoff.getMonth() - months);
+    return data.filter((d) => new Date(d.date) >= cutoff);
+  }
+
+  function percentile(values, p) {
+    if (!values.length) return null;
+    const sorted = values.slice().sort((a, b) => a - b);
+    const idx = (p / 100) * (sorted.length - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.ceil(idx);
+    if (lo === hi) return sorted[lo];
+    const frac = idx - lo;
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * frac;
+  }
+
+  function el(tag, attrs, parent) {
+    const node = document.createElementNS(svgNS, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  function buildStats(filtered) {
+    const statsEl = document.getElementById("stats");
+    const values = filtered.map((d) => d.leadTime);
+    const count = values.length;
+    const avg = count ? (values.reduce((a, b) => a + b, 0) / count) : 0;
+    const p50 = percentile(values, 50);
+    const p85 = percentile(values, 85);
+    const p95 = percentile(values, 95);
+    const fmt = (v) => (v === null || v === undefined ? "—" : v.toFixed(0));
+    statsEl.innerHTML = [
+      ["Liczba punktów", count],
+      ["Średnia (dni)", fmt(avg)],
+      ["P50 / P85 / P95", fmt(p50) + " / " + fmt(p85) + " / " + fmt(p95)]
+    ].map(([label, value]) =>
+      '<div class="stat-card"><div class="label">' + label + '</div><div class="value">' + value + '</div></div>'
+    ).join("");
+  }
+
+  function buildLegend(activeSizes) {
+    const legendEl = document.getElementById("legend-row");
+    legendEl.innerHTML = activeSizes.map((s) =>
+      '<span><span class="dot dot-' + s.toLowerCase() + '"></span>' + SIZE_LABELS[s] + '</span>'
+    ).join("");
+  }
+
+  function render() {
+    const rangeFiltered = getRangeFiltered();
+    const filtered = rangeFiltered.filter((d) => state.sizes[d.size]);
+    const activeSizes = Object.keys(SIZE_COLORS).filter((s) => state.sizes[s]);
+
+    buildStats(filtered);
+    buildLegend(activeSizes);
+
+    // wyczyść SVG
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    const rect = chartWrap.getBoundingClientRect();
+    const width = Math.max(rect.width, 320);
+    const height = Math.max(rect.height, 320);
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+
+    const margin = { top: 20, right: 90, bottom: 40, left: 55 };
+    const innerW = width - margin.left - margin.right;
+    const innerH = height - margin.top - margin.bottom;
+
+    if (!rangeFiltered.length) {
+      el("text", {
+        x: width / 2, y: height / 2, "text-anchor": "middle",
+        fill: "#9aa0ad", "font-family": "Poppins, sans-serif", "font-size": 13
+      }, svg).textContent = "Brak danych w wybranym zakresie.";
+      return;
+    }
+
+    // Domena X oparta o dane po filtrze zakresu czasu (stabilna przy przełączaniu rozmiarów)
+    const timesAll = rangeFiltered.map((d) => new Date(d.date).getTime());
+    let xMin = Math.min(...timesAll);
+    let xMax = Math.max(...timesAll);
+    if (xMin === xMax) { xMin -= 86400000 * 15; xMax += 86400000 * 15; }
+    const xPad = (xMax - xMin) * 0.04;
+    xMin -= xPad; xMax += xPad;
+
+    // Domena Y oparta o aktualnie widoczne punkty (po filtrze rozmiaru)
+    const valuesVisible = filtered.length ? filtered.map((d) => d.leadTime) : rangeFiltered.map((d) => d.leadTime);
+    let yMax = Math.max(...valuesVisible, 10) * 1.15;
+
+    const xScale = (t) => margin.left + ((t - xMin) / (xMax - xMin)) * innerW;
+    const yScale = (v) => margin.top + innerH - (v / yMax) * innerH;
+
+    const g = el("g", {}, svg);
+
+    // siatka pozioma + oś Y
+    const yTickCount = 5;
+    for (let i = 0; i <= yTickCount; i++) {
+      const v = (yMax / yTickCount) * i;
+      const y = yScale(v);
+      el("line", { x1: margin.left, x2: margin.left + innerW, y1: y, y2: y, class: "grid-line" }, g);
+      const t = el("text", { x: margin.left - 10, y: y + 4, "text-anchor": "end", class: "axis-label" }, g);
+      t.textContent = Math.round(v);
+    }
+    el("text", {
+      x: 14, y: margin.top + innerH / 2, class: "axis-label",
+      transform: "rotate(-90 14 " + (margin.top + innerH / 2) + ")", "text-anchor": "middle"
+    }, g).textContent = "Czas realizacji (dni)";
+
+    // oś X (znaczniki miesięczne)
+    const tickDates = [];
+    const startD = new Date(xMin);
+    let cursor = new Date(startD.getFullYear(), startD.getMonth(), 1);
+    const endTime = xMax;
+    const approxTicks = Math.max(2, Math.min(10, Math.round((xMax - xMin) / (86400000 * 30))));
+    const step = Math.max(1, Math.round(((xMax - xMin) / (86400000 * 30)) / approxTicks));
+    while (cursor.getTime() <= endTime) {
+      if (cursor.getTime() >= xMin) tickDates.push(new Date(cursor));
+      cursor.setMonth(cursor.getMonth() + step);
+    }
+    tickDates.forEach((d) => {
+      const x = xScale(d.getTime());
+      el("line", { x1: x, x2: x, y1: margin.top, y2: margin.top + innerH, class: "grid-line" }, g);
+      const t = el("text", { x: x, y: margin.top + innerH + 18, "text-anchor": "middle", class: "axis-label" }, g);
+      t.textContent = MONTHS_PL[d.getMonth()] + " " + String(d.getFullYear()).slice(2);
+    });
+
+    // oś ramki
+    el("line", { x1: margin.left, x2: margin.left + innerW, y1: margin.top + innerH, y2: margin.top + innerH, class: "grid-line" }, g);
+    el("line", { x1: margin.left, x2: margin.left, y1: margin.top, y2: margin.top + innerH, class: "grid-line" }, g);
+
+    // linie percentyli (liczone z aktualnie widocznych punktów)
+    [50, 85, 95].forEach((p) => {
+      if (!state.percentiles[p]) return;
+      const val = percentile(valuesVisible, p);
+      if (val === null) return;
+      const y = yScale(val);
+      el("line", {
+        x1: margin.left, x2: margin.left + innerW, y1: y, y2: y,
+        class: "perc-line", stroke: PERC_COLORS[p]
+      }, g);
+      const labelBg = el("rect", {
+        x: margin.left + innerW + 6, y: y - 10, width: 76, height: 18, rx: 4,
+        fill: PERC_COLORS[p]
+      }, g);
+      const label = el("text", {
+        x: margin.left + innerW + 10, y: y + 4, class: "perc-label", fill: "#0d0e12"
+      }, g);
+      label.textContent = "P" + p + ": " + val.toFixed(0) + "d";
+    });
+
+    // punkty danych
+    filtered.forEach((d) => {
+      const cx = xScale(new Date(d.date).getTime());
+      const cy = yScale(d.leadTime);
+      const point = el("circle", {
+        cx: cx, cy: cy, r: 5.5, fill: SIZE_COLORS[d.size],
+        stroke: SIZE_COLORS[d.size], class: "point"
+      }, g);
+      point.addEventListener("mouseenter", (ev) => {
+        tooltip.style.opacity = "1";
+        tooltip.innerHTML = "<strong>" + SIZE_LABELS[d.size] + "</strong><br>" +
+          "Data: " + d.date + "<br>Czas realizacji: " + d.leadTime + " dni";
+      });
+      point.addEventListener("mousemove", (ev) => {
+        const wrapRect = chartWrap.getBoundingClientRect();
+        tooltip.style.left = (ev.clientX - wrapRect.left + 14) + "px";
+        tooltip.style.top = (ev.clientY - wrapRect.top + 14) + "px";
+      });
+      point.addEventListener("mouseleave", () => { tooltip.style.opacity = "0"; });
+    });
+  }
+
+  window.addEventListener("resize", render);
+  render();
+})();
+</script>
+</body>
 </html>
